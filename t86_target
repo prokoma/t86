@@ -1,0 +1,9 @@
+#pragma once
+
+namespace tiny {
+
+    class t86_target {
+    public:
+
+    }; // t86_target
+}
