@@ -1,9 +1,30 @@
 #pragma once
 
+#include "t86/utils/stats_logger.h"
+#include "t86/program.h"
+#include "t86/cpu.h"
+#include <common/config.h>
+
+#include <iostream>
+
 namespace tiny {
 
     class t86_target {
     public:
+        /**
+         * Runs the given executable.
+         */
+        void execute(t86::Program&& exe) {
+            t86::StatsLogger::instance().reset();
 
+            t86::Cpu cpu;
+            cpu.start(std::move(exe));
+
+            while (!cpu.halted()) {
+                cpu.tick();
+            }
+
+            t86::StatsLogger::instance().processBasicStats(std::cerr);
+        }
     }; // t86_target
 }
