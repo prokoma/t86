@@ -5,7 +5,7 @@
 
 namespace tiny::t86::Alu {
     Flags::operator int64_t() const {
-        return signFlag | (zeroFlag << 1) | (carryFlag << 2) | (overflowFlag << 3);
+        return (signFlag << 0) | (zeroFlag << 1) | (carryFlag << 2) | (overflowFlag << 3);
     }
 
     Flags::Flags(int64_t value) {
