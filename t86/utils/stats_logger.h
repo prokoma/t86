@@ -4,6 +4,7 @@
 #include <set>
 #include <map>
 #include <optional>
+#include <unordered_map>
 
 #include "../cpu/register.h"
 

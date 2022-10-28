@@ -4,6 +4,7 @@ set(PROJECT_NAME "libt86")
 
 project(${PROJECT_NAME})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+set(CMAKE_CXX_STANDARD 17)
 file(GLOB_RECURSE SRC "*.cpp" "*.h")
 add_library(${PROJECT_NAME} ${SRC})
 

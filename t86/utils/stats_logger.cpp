@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <cassert>
+#include <unordered_map>
 
 namespace tiny::t86 {
     void StatsLogger::logInstructionFetch(std::size_t id) {
