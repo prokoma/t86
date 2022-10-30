@@ -19,7 +19,7 @@
 #include <unordered_map>
 #include <set>
 
-namespace tiny::t86 {   
+namespace tiny::t86 {
     class Cpu {
     public:
         class Config {
