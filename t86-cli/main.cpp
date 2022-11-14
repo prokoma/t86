@@ -1,13 +1,27 @@
+#include <fstream>
+
 #include "parser.h"
 
 using namespace tiny::t86;
 
+const char* usage_str = R"(
+Usage: t86-cli command
+commands:
+    run input - Parses input, which must be valid T86 assembly file, and runs it on the VM.
+)";
+
 int main(int argc, char* argv[]) {
-    if (argc <= 1) {
-        std::cout << "Usage: t86-cli\n  File from stdin\n";
+    if (argc <= 2) {
+        std::cerr << usage_str;
         return 1;
     }
-    Parser parser(std::cin);
+    std::fstream f(argv[2]);
+    if (!f) {
+        std::cerr << "Unable to open file `" << argv[2] << "`\n";
+        return 3;
+    }
+    
+    Parser parser(f);
     tiny::t86::Program program;
     try {
         program = parser.Parse();
