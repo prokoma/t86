@@ -1,9 +1,14 @@
 #!/bin/bash
 
+if [[ "$#" -ne 1 ]]; then
+    echo "Usage: run_tests.sh t86-cli"
+fi
+
+
 ./scripts/build.sh
 for file in t86-cli/tests/*.in; do
     ref="${file%.in}.ref"
-    ./build/t86-cli/t86-cli run < ${file} > "test_out.tmp"
+    ${1} run < ${file} > "test_out.tmp"
     diff "test_out.tmp" "${file%.in}.ref" > "diff_out.tmp"
     if [[ $? -ne 0 ]]; then
         echo "Test ${file} failed"

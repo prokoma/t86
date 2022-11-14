@@ -1,0 +1,46 @@
+name: test
+
+on: [pull_request]
+
+jobs:
+  build:
+    name: Build C++
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: CMake and Make
+      run: |
+        cd ${{ github.workspace }}
+        mkdir -p build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+        make
+    - name: Unit tests
+      run: |
+        cd ${{ github.workspace }}/build
+        make test
+    - name: Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: t86-build
+        path: ${{ github.workspace }}/build/t86-cli
+        retention-days: 1
+
+  integration-tests:
+    name: Integration tests
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Download t86
+        uses: actions/download-artifact@v3
+        with:
+          name: t86-build
+          path: t86-cli-build
+      - name: Run integration tests
+        run: |
+          cd ${{ github.workspace }}
+          chmod +x t86-cli-build/t86-cli
+          ./scripts/run_tests.sh t86-cli-build/t86-cli
