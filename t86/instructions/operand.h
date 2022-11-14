@@ -157,6 +157,8 @@ namespace tiny::t86 {
 
         const FloatRegister& getFloatRegister() const;
 
+        auto getOperandVar() const { return value_; };
+
         static int64_t supply(const Register& reg, int64_t val);
 
         static int64_t supply(const RegisterOffset& reg, int64_t val);

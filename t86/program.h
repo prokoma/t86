@@ -2,10 +2,10 @@
 
 #include <vector>
 #include <cstdint>
+#include <iostream>
+#include "instruction.h"
 
 namespace tiny::t86 {
-
-    class Instruction;
 
     /**
      * Simple wrapper for vector of instructions
@@ -37,6 +37,13 @@ namespace tiny::t86 {
 
         std::vector<Instruction*> moveInstructions() {
             return std::move(instructions_);
+        }
+
+        void dump() const {
+            unsigned cnt = 0;
+            for (const auto ins: instructions_) {
+                std::cerr << cnt++ << ": " << ins->toString() << "\n";
+            }
         }
 
     private:

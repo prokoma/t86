@@ -22,9 +22,13 @@
 namespace tiny::t86 {
     class Cpu {
     public:
+        /// A singleton class
         class Config {
         public:
-            static Config& instance();
+            static Config& instance() {
+                static Config c;
+                return c;
+            }
 
             constexpr static const char* registerCountConfigString = "-registerCnt";
 

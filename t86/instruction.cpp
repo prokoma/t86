@@ -199,6 +199,7 @@ namespace tiny::t86 {
     INS_NAME::INS_NAME(Register reg, Memory::Immediate val) : BinaryArithmeticInstruction(OP, reg, val) {}      \
     INS_NAME::INS_NAME(Register reg, Memory::Register val) : BinaryArithmeticInstruction(OP, reg, val) {}       \
     INS_NAME::INS_NAME(Register reg, Memory::RegisterOffset val) : BinaryArithmeticInstruction(OP, reg, val) {} \
+    INS_NAME::INS_NAME(Register reg, Operand val) : BinaryArithmeticInstruction(OP, reg, val) {} \
     INS_NAME::INS_NAME(Register dest, Register reg, int64_t val) : BinaryArithmeticInstruction(OP, dest, reg, val) {} \
     INS_NAME::INS_NAME(Register dest, Register reg, Register val) : BinaryArithmeticInstruction(OP, dest, reg, val) {}
 
@@ -243,7 +244,7 @@ namespace tiny::t86 {
 #define FLOAT_BINARY_ARITH_INS_IMPL(INS_NAME, OP)                                                        \
     INS_NAME::INS_NAME(FloatRegister fReg, double val) : FloatBinaryArithmeticInstruction(OP, fReg, val) {}        \
     INS_NAME::INS_NAME(FloatRegister fReg, FloatRegister val) : FloatBinaryArithmeticInstruction(OP, fReg, val) {}
-    
+
     FLOAT_BINARY_ARITH_INS_IMPL(FADD, &Alu::fadd)
     FLOAT_BINARY_ARITH_INS_IMPL(FSUB, &Alu::fsubtract)
     FLOAT_BINARY_ARITH_INS_IMPL(FMUL, &Alu::fmultiply)
@@ -429,7 +430,8 @@ INS_NAME::INS_NAME(Register address) : ConditionalJumpInstruction([](Alu::Flags 
 INS_NAME::INS_NAME(uint64_t address) : ConditionalJumpInstruction([](Alu::Flags flags){ return CONDITION; }, address) {} \
 INS_NAME::INS_NAME(Memory::Immediate address) : ConditionalJumpInstruction([](Alu::Flags flags) { return CONDITION; }, address) {} \
 INS_NAME::INS_NAME(Memory::Register address) : ConditionalJumpInstruction([](Alu::Flags flags) { return CONDITION; }, address) {} \
-INS_NAME::INS_NAME(Memory::RegisterOffset address) : ConditionalJumpInstruction([](Alu::Flags flags){ return CONDITION; }, address) {}
+INS_NAME::INS_NAME(Memory::RegisterOffset address) : ConditionalJumpInstruction([](Alu::Flags flags){ return CONDITION; }, address) {} \
+INS_NAME::INS_NAME(Operand address) : ConditionalJumpInstruction([](Alu::Flags flags){ return CONDITION; }, address) {}
 
     COND_JMP_INS_IMPL(JZ, flags.zeroFlag)
 

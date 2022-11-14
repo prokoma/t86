@@ -152,11 +152,17 @@ namespace tiny::t86 {
 
         BinaryArithmeticInstruction(std::function<Alu::Result(int64_t, int64_t)> op, Register reg, Memory::RegisterOffset val)
                 : op_(std::move(op)), dest_(reg), reg_(reg), val_(val) {}
-        
+
+        BinaryArithmeticInstruction(std::function<Alu::Result(int64_t, int64_t)> op, Register reg, Operand val)
+                : op_(std::move(op)), dest_(reg), reg_(reg), val_(val) {}
+
         BinaryArithmeticInstruction(std::function<Alu::Result(int64_t, int64_t)> op, Register dest, Register reg, int64_t val)
                 : op_(std::move(op)), riscLike_(true), dest_(dest), reg_(reg), val_(val) {}
 
         BinaryArithmeticInstruction(std::function<Alu::Result(int64_t, int64_t)> op, Register dest, Register reg, Register val)
+                : op_(std::move(op)), riscLike_(true), dest_(dest), reg_(reg), val_(val) {}
+
+        BinaryArithmeticInstruction(std::function<Alu::Result(int64_t, int64_t)> op, Register dest, Register reg, Operand val)
                 : op_(std::move(op)), riscLike_(true), dest_(dest), reg_(reg), val_(val) {}
 
         bool needsAlu() const override {
@@ -206,6 +212,7 @@ namespace tiny::t86 {
         INS_NAME(Register reg, Memory::Immediate val);         \
         INS_NAME(Register reg, Memory::Register val);          \
         INS_NAME(Register reg, Memory::RegisterOffset val);    \
+        INS_NAME(Register reg, Operand val);    \
         INS_NAME(Register dest, Register reg, int64_t val);    \
         INS_NAME(Register dest, Register reg, Register val);   \
         Type type() const override { return Type::INS_NAME; }  \
@@ -439,7 +446,7 @@ class INS_NAME : public UnaryArithmeticInstruction {      \
         MOV(FloatRegister destination, Memory::Register value) : destination_(destination), value_(value) {}
 
         MOV(Memory::Immediate destination, FloatRegister value) : destination_(destination), value_(value) {}
-        
+
         MOV(Memory::Register destination, FloatRegister value) : destination_(destination), value_(value) {}
 
         MOV(Memory::RegisterOffset destination, FloatRegister value) : destination_(destination), value_(value) {}
@@ -453,6 +460,8 @@ class INS_NAME : public UnaryArithmeticInstruction {      \
         MOV(Memory::RegisterOffsetRegister destination, FloatRegister value) : destination_(destination), value_(value) {}
 
         MOV(Memory::RegisterOffsetRegisterScaled destination, FloatRegister value) : destination_(destination), value_(value) {}
+
+        MOV(Operand destination, Operand value) : destination_(std::move(destination)), value_(std::move(value)) {}
 
     public:
         Type type() const override { return Type::MOV; }
@@ -520,6 +529,9 @@ class INS_NAME : public UnaryArithmeticInstruction {      \
         CMP(Register reg, Memory::RegisterOffset value)
                 : reg_(reg), value_(value) {}
 
+        CMP(Register reg, Operand value)
+                : reg_(reg), value_(value) {}
+
         bool needsAlu() const override {
             return true;
         }
@@ -582,6 +594,8 @@ class INS_NAME : public UnaryArithmeticInstruction {      \
 
         PUSH(Register val) : val_(val) {}
 
+        PUSH(Operand val) : val_(val) {}
+
         Type type() const override { return Type::PUSH; }
 
         std::size_t length() const override;
@@ -611,6 +625,8 @@ class INS_NAME : public UnaryArithmeticInstruction {      \
         FPUSH(double val) : val_(val) {}
 
         FPUSH(FloatRegister fReg) : val_(fReg) {}
+
+        FPUSH(Operand fReg) : val_(fReg) {}
 
         Type type() const override { return Type::FPUSH; }
 
@@ -736,6 +752,8 @@ class INS_NAME : public UnaryArithmeticInstruction {      \
 
         PatchableJumpInstruction(Memory::RegisterOffset address) : address_(address) {}
 
+        PatchableJumpInstruction(Operand address) : address_(address) {}
+
         void setDestination(uint64_t address);
 
         Operand getDestination() const override {
@@ -765,6 +783,9 @@ class INS_NAME : public UnaryArithmeticInstruction {      \
                 : PatchableJumpInstruction{address}, condition_{std::move(condition)} {}
 
         ConditionalJumpInstruction(std::function<bool(Alu::Flags)> condition, Memory::RegisterOffset address)
+                : PatchableJumpInstruction{address}, condition_{std::move(condition)} {}
+
+        ConditionalJumpInstruction(std::function<bool(Alu::Flags)> condition, Operand address)
                 : PatchableJumpInstruction{address}, condition_{std::move(condition)} {}
 
         std::vector<Operand> operands() const override {
@@ -810,6 +831,7 @@ class INS_NAME : public ConditionalJumpInstruction {          \
         INS_NAME(Memory::Immediate address);                  \
         INS_NAME(Memory::Register address);                   \
         INS_NAME(Memory::RegisterOffset address);             \
+        INS_NAME(Operand address);                            \
         Type type() const override { return Type::INS_NAME; } \
         std::size_t length() const override;                  \
 };
@@ -884,6 +906,8 @@ class INS_NAME : public ConditionalJumpInstruction {          \
 
         CALL(uint64_t address) : PatchableJumpInstruction{address} {}
 
+        CALL(Operand address) : PatchableJumpInstruction{address} {}
+
         Type type() const override { return Type::CALL; }
 
         std::size_t length() const override;
@@ -953,6 +977,9 @@ class INS_NAME : public ConditionalJumpInstruction {          \
             : reg_(reg), mem_(mem) {}
 
         LEA(Register reg, Memory::RegisterOffsetRegisterScaled mem)
+            : reg_(reg), mem_(mem) {}
+
+        LEA(Register reg, Operand mem)
             : reg_(reg), mem_(mem) {}
 
         Type type() const override { return Type::JMP; }

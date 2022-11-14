@@ -12,19 +12,6 @@ namespace tiny::t86 {
         return 5;
     }
 
-    std::size_t Cpu::Config::getExecutionLength(const Instruction* ins) const {
-        static std::map<Instruction::Signature, std::size_t> lengths = {
-            { { Instruction::Type::MOV, { Operand::Type::Reg, Operand::Type::Imm } }, 2 },
-        };
-
-        if (auto it = lengths.find(ins->getSignature()); it != lengths.end()) {
-            return it->second;
-        } else {
-            // DEFAULT VALUE
-            return 3;
-        }
-    }
-
     std::size_t MOV::length() const {
         // POC how this can be used
         if (!destination_.isRegister()) {

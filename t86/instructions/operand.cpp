@@ -399,6 +399,8 @@ namespace tiny::t86 {
             return getRegisterRegisterScaled().toString();
         } else if (isRegisterOffsetRegisterScaled()) {
             return getRegisterOffsetRegisterScaled().toString();
+        } else if (isMemoryImmediate()) {
+            return getMemoryImmediate().toString();
         } else if (isMemoryRegister()) {
             return getMemoryRegister().toString();
         } else if (isMemoryRegisterOffset()) {

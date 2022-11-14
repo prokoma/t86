@@ -5,6 +5,7 @@
 #include "cpu.h"
 #include "utils/stats_logger.h"
 #include "cpu/branch_predictors/naive_branch_predictor.h"
+#include "../common/config.h"
 
 namespace tiny::t86 {
     void Cpu::tick() {
@@ -293,5 +294,57 @@ namespace tiny::t86 {
 
     void Cpu::specifyWriteAddress(MemoryWrite::Id id, uint64_t value) {
         writesManager_.specifyAddress(id, value);
+    }
+
+    std::size_t Cpu::Config::registerCnt() const {
+        return std::stoul(config.get(registerCountConfigString));
+    }
+
+    std::size_t Cpu::Config::floatRegisterCnt() const {
+        return std::stoul(config.get(floatRegisterCountConfigString));
+    }
+
+    std::size_t Cpu::Config::aluCnt() const {
+        return std::stoul(config.get(aluCountConfigString));
+    }
+
+    std::size_t Cpu::Config::reservationStationEntriesCnt() const {
+        return std::stoul(config.get(reservationStationEntriesCountConfigString));
+    }
+
+    std::size_t Cpu::Config::ramSize() const {
+        return std::stoul(config.get(ramSizeConfigString));
+    }
+
+    std::size_t Cpu::Config::ramGatesCount() const {
+        return std::stoul(config.get(ramGatesCountConfigString));
+    }
+
+    std::size_t Cpu::Config::getExecutionLength(const Instruction* ins) const {
+        static std::map<Instruction::Signature, std::size_t> lengths = {
+            { { Instruction::Type::MOV, { Operand::Type::Reg, Operand::Type::Imm } }, 2 },
+        };
+
+        if (auto it = lengths.find(ins->getSignature()); it != lengths.end()) {
+            return it->second;
+        } else {
+            // DEFAULT VALUE
+            return 3;
+        }
+    }
+
+    Cpu::Config::Config() {
+        config.setDefaultIfMissing(Config::registerCountConfigString,
+                                   std::to_string(Config::defaultRegisterCount));
+        config.setDefaultIfMissing(Config::floatRegisterCountConfigString,
+                                   std::to_string(Config::defaultFloatRegisterCount));
+        config.setDefaultIfMissing(Config::aluCountConfigString,
+                                   std::to_string(Config::defaultAluCount));
+        config.setDefaultIfMissing(Config::reservationStationEntriesCountConfigString,
+                                   std::to_string(Config::defaultReservationStationEntriesCount));
+        config.setDefaultIfMissing(Config::ramSizeConfigString,
+                                   std::to_string(Config::defaultRamSize));
+        config.setDefaultIfMissing(Config::ramGatesCountConfigString,
+                                   std::to_string(Config::defaultRamGatesCount));
     }
 }

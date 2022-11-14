@@ -24,6 +24,12 @@ namespace tiny::t86 {
             return Label(instructions_.size() - 1);
         }
 
+        Label add(Instruction* ins) {
+            ins->validate();
+            instructions_.push_back(ins);
+            return Label(instructions_.size() - 1);
+        }
+
         Label add(const DBG& instruction) {
             if (!release_) {
                 instructions_.push_back(new DBG(instruction));
