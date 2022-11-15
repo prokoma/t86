@@ -21,6 +21,7 @@ enum class Token {
     SEMICOLON,
     PLUS,
     TIMES,
+    COMMA,
 };
 
 /// Parses text representation of T86 into in-memory representation
@@ -42,6 +43,8 @@ public:
             return getNext();
         } else if (c == ';') {
             return Token::SEMICOLON;
+        } else if (c == ',') {
+            return Token::COMMA;
         } else if (c == '[') {
             return Token::LBRACKET;
         } else if (c == ']') {
@@ -224,6 +227,8 @@ public:
         UNREACHABLE;
     }
 
+#define CHECK_COMMA() do { ExpectTok(Token::COMMA, GetNextPrev(), []{ return "Expected comma to separate arguments"; });} while (false)
+
     tiny::t86::Instruction* Instruction() {
         // Address at the beginning is optional
         if (curtok == Token::NUM) {
@@ -236,15 +241,19 @@ public:
 
         if (ins_name == "MOV") {
             auto dest = Operand();
+            CHECK_COMMA();
             auto from = Operand();
             return new tiny::t86::MOV{dest, from};
         } else if (ins_name == "ADD") {
             auto dest = Operand();
+            CHECK_COMMA();
             auto from = Operand();
 
             return new tiny::t86::ADD{dest.getRegister(), from};
         } else if (ins_name == "LEA") {
             auto dest = Operand();
+            CHECK_COMMA();
+            ExpectTok(Token::COMMA, GetNextPrev(), []{ return "Expected comma to separate arguments."; });
             auto from = Operand();
 
             return new tiny::t86::LEA(dest.getRegister(), from);
@@ -258,6 +267,8 @@ public:
             return new tiny::t86::BREAK{};
         } else if (ins_name == "SUB") {
             auto dest = Operand();
+            CHECK_COMMA();
+            ExpectTok(Token::COMMA, GetNextPrev(), []{ return "Expected comma to separate arguments."; });
             auto from = Operand();
             return new tiny::t86::SUB{dest.getRegister(), from};
         } else if (ins_name == "INC") {
@@ -271,34 +282,42 @@ public:
             return new tiny::t86::DEC{op.getRegister()};
         } else if (ins_name == "MUL") {
             auto dest = Operand();
+            CHECK_COMMA();
             auto from = Operand();
             return new tiny::t86::MUL{dest.getRegister(), from};
         } else if (ins_name == "DIV") {
             auto dest = Operand();
+            CHECK_COMMA();
             auto from = Operand();
             return new tiny::t86::DIV{dest.getRegister(), from};
         } else if (ins_name == "MOD") {
             auto dest = Operand();
+            CHECK_COMMA();
             auto from = Operand();
             return new tiny::t86::MOD{dest.getRegister(), from};
         } else if (ins_name == "IMUL") {
             auto dest = Operand();
+            CHECK_COMMA();
             auto from = Operand();
             return new tiny::t86::IMUL{dest.getRegister(), from};
         } else if (ins_name == "IDIV") {
             auto dest = Operand();
+            CHECK_COMMA();
             auto from = Operand();
             return new tiny::t86::IDIV{dest.getRegister(), from};
         } else if (ins_name == "AND") {
             auto dest = Operand();
+            CHECK_COMMA();
             auto from = Operand();
             return new tiny::t86::AND{dest.getRegister(), from};
         } else if (ins_name == "OR") {
             auto dest = Operand();
+            CHECK_COMMA();
             auto from = Operand();
             return new tiny::t86::OR{dest.getRegister(), from};
         } else if (ins_name == "XOR") {
             auto dest = Operand();
+            CHECK_COMMA();
             auto from = Operand();
             return new tiny::t86::XOR{dest.getRegister(), from};
         } else if (ins_name == "NOT") {
@@ -306,20 +325,24 @@ public:
             return new tiny::t86::NOT{op.getRegister()};
         } else if (ins_name == "LSH") {
             auto dest = Operand();
+            CHECK_COMMA();
             auto from = Operand();
             return new tiny::t86::LSH{dest.getRegister(), from};
         } else if (ins_name == "RSH") {
             auto dest = Operand();
+            CHECK_COMMA();
             auto from = Operand();
             return new tiny::t86::RSH{dest.getRegister(), from};
         } else if (ins_name == "CLF") {
             throw ParserError("CLF instruction is not implemented");
         } else if (ins_name == "CMP") {
             auto dest = Operand();
+            CHECK_COMMA();
             auto from = Operand();
             return new tiny::t86::CMP{dest.getRegister(), from};
         } else if (ins_name == "FCMP") {
             auto dest = Operand();
+            CHECK_COMMA();
             auto from = Operand();
             if (from.isFloatValue()) {
                 NOT_IMPLEMENTED;
@@ -340,6 +363,7 @@ public:
             }
         } else if (ins_name == "LOOP") {
             auto reg = Operand();
+            CHECK_COMMA();
             auto address = Operand();
             if (address.isRegister()) {
                 return new tiny::t86::LOOP{reg.getRegister(), address.getRegister()};
@@ -433,14 +457,16 @@ public:
         }
     }
 
+#undef CHECK_COMMA
+
     void Text() {
         utils::logger("Parsing text section...");
         while (curtok == Token::NUM || curtok == Token::ID) {
             auto ins = Instruction();
             program.push_back(ins);
-            if (GetNextPrev() != Token::SEMICOLON) {
-                throw ParserError("Instruction must be terminated by semicolon");
-            }
+            // if (GetNextPrev() != Token::SEMICOLON) {
+            //     throw ParserError("Instruction must be terminated by semicolon");
+            // }
         }
     }
 
