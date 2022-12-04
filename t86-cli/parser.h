@@ -133,11 +133,13 @@ public:
 
     size_t getRegisterID(std::string_view regname) {
         if (regname == "BP") {
-            NOT_IMPLEMENTED;
+            return tiny::t86::Register::StackBasePointer().index();
         } else if (regname == "SP") {
-            NOT_IMPLEMENTED;
+            return tiny::t86::Register::StackPointer().index();
+        } else if (regname == "IP") {
+            return tiny::t86::Register::ProgramCounter().index();
         } else if (regname[0] != 'R') {
-            throw ParserError(utils::format("Registers must begin with an R, unless BP or SP, got {}", regname));
+            throw ParserError(utils::format("Registers must begin with an R, unless IP, BP or SP, got {}", regname));
         }
         regname.remove_prefix(1);
         return std::atoi(regname.data());
