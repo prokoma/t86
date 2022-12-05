@@ -131,18 +131,18 @@ public:
         }
     }
 
-    size_t getRegisterID(std::string_view regname) {
+    tiny::t86::Register getRegister(std::string_view regname) {
         if (regname == "BP") {
-            return tiny::t86::Register::StackBasePointer().index();
+            return tiny::t86::Register::StackBasePointer();
         } else if (regname == "SP") {
-            return tiny::t86::Register::StackPointer().index();
+            return tiny::t86::Register::StackPointer();
         } else if (regname == "IP") {
-            return tiny::t86::Register::ProgramCounter().index();
+            return tiny::t86::Register::ProgramCounter();
         } else if (regname[0] != 'R') {
             throw ParserError(utils::format("Registers must begin with an R, unless IP, BP or SP, got {}", regname));
         }
         regname.remove_prefix(1);
-        return std::atoi(regname.data());
+        return tiny::t86::Register{static_cast<size_t>(std::atoi(regname.data()))};
     }
 
     tiny::t86::Operand Operand() {
@@ -150,8 +150,8 @@ public:
         if (curtok == Token::ID) {
             std::string regname = lex.getId();
             GetNext();
-            int reg_id = getRegisterID(regname);
-            return Reg(reg_id);
+            auto reg = getRegister(regname);
+            return reg;
         } else if (curtok == Token::NUM) {
             int imm = lex.getNumber();
             GetNext();
@@ -167,41 +167,41 @@ public:
             // First is register
             } else if (curtok == Token::ID) {
                 auto regname = lex.getId();
-                auto reg_id = getRegisterID(regname);
+                auto reg = getRegister(regname);
                 // Only register
                 if (GetNext() == Token::RBRACKET) {
                     GetNext();
                     // [Rx]
-                    return Mem(Reg(reg_id));
+                    return Mem(reg);
                 }
                 // Has second with +
                 if (curtok == Token::PLUS) {
                     GetNext();
                     // Can either be imm or register
                     if (curtok == Token::ID) {
-                        auto reg_id2 = getRegisterID(lex.getId());
+                        auto reg2 = getRegister(lex.getId());
                         if (GetNext() == Token::RBRACKET) {
                             GetNext();
-                            return Mem(Reg(reg_id) + Reg(reg_id2));
+                            return Mem(reg + reg2);
                         } else if (curtok == Token::TIMES && GetNext() == Token::NUM) {
                             auto val = lex.getNumber();
                             ExpectTok(Token::RBRACKET, GetNext(), []{ return "Expected ']' to close dereference\n"; });
-                            return Mem(Reg(reg_id) + Reg(reg_id2) * val);
+                            return Mem(reg + reg2 * val);
                         }
                     } else if (curtok == Token::NUM) {
                         auto val = lex.getNumber();
                         if (GetNext() == Token::RBRACKET) {
                             GetNext();
-                            return Mem(Reg(reg_id) + val);
+                            return Mem(reg + val);
                         }
                         if (curtok != Token::PLUS || GetNext() != Token::ID) {
                             throw ParserError("Dereference of form [R1 + i ...] must always contain `+ R` after i");
                         }
 
-                        auto reg_id2 = getRegisterID(lex.getId());
+                        auto reg2 = getRegister(lex.getId());
                         if (GetNext() == Token::RBRACKET) {
                             GetNext();
-                            return Mem(Reg(reg_id) + val + Reg(reg_id2));
+                            return Mem(reg + val + reg2);
                         }
                         ExpectTok(Token::TIMES, curtok, []{ return "After `[R1 + i + R2` there must always be a `*` or `]`"; });
                         ExpectTok(Token::NUM, GetNext(), []{ return "After `[R1 + i + R2 *` there must always be an imm"; });
@@ -209,7 +209,7 @@ public:
                         
                         ExpectTok(Token::RBRACKET, GetNext(), []{ return "Expected ']' to close dereference "; });
                         GetNext(); // Eat ']'
-                        return Mem(Reg(reg_id) + val + Reg(reg_id2) * val2);
+                        return Mem(reg + val + reg2 * val2);
                     }
                 // Has second with *
                 } else if (curtok == Token::TIMES) {
@@ -220,7 +220,7 @@ public:
                         throw ParserError("Expected ']' to close dereference");
                     }
                     GetNext(); // ']'
-                    return Mem(Reg(reg_id) * val);
+                    return Mem(reg * val);
                 }
                 UNREACHABLE;
             }
@@ -442,6 +442,9 @@ public:
         } else if (ins_name == "PUTCHAR") {
             auto reg = Operand();
             return new tiny::t86::PUTCHAR{reg.getRegister(), std::cout};
+        } else if (ins_name == "PUTNUM") {
+            auto reg = Operand();
+            return new tiny::t86::PUTNUM{reg.getRegister(), std::cout};
         } else if (ins_name == "FADD") {
             NOT_IMPLEMENTED;
         } else if (ins_name == "FSUB") {
@@ -454,8 +457,10 @@ public:
             NOT_IMPLEMENTED;
         } else if (ins_name == "NRW") {
             NOT_IMPLEMENTED;
+        } else if (ins_name == "NOP") {
+            return new tiny::t86::NOP{};
         } else {
-            throw ParserError("Unknown instruction");
+            throw ParserError(utils::format("Unknown instruction {}", ins_name));
         }
     }
 

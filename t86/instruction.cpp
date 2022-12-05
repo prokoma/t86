@@ -115,6 +115,8 @@ namespace tiny::t86 {
                 return "FPOP";
             case Type::PUTCHAR:
                 return "PUTCHAR";
+            case Type::PUTNUM:
+                return "PUTNUM";
             case Type::GETCHAR:
                 return "GETCHAR";
             case Type::FADD:
@@ -699,6 +701,12 @@ INS_NAME::INS_NAME(Operand address) : ConditionalJumpInstruction([](Alu::Flags f
         const auto& operands = entry.operands();
         assert(operands.size() == 1);
         os_ << static_cast<char>(operands[0].getValue()) << std::flush;
+    }
+
+    void PUTNUM::retire(ReservationStation::Entry& entry) const {
+        const auto& operands = entry.operands();
+        assert(operands.size() == 1);
+        os_ << static_cast<int>(operands[0].getValue()) << std::endl;
     }
 
     void GETCHAR::retire(ReservationStation::Entry& entry) const {

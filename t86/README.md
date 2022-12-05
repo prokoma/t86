@@ -278,6 +278,7 @@ FPOP | `F1` | Stores top of stack to `F1` and pops stack
 Instruction | Operands | Description | Length (B)| Cycle time |
 ----------|----------|-------------|-----------|------------|
 PUTCHAR | `R1` | Prints `R1` as ASCII
+PUTNUM | `R1` | Prints contents of `R1` as integer followed by newline
 GETCHAR | `R1` | Loads char as ASCII from input to `R1`
 
 ### Float manipulation

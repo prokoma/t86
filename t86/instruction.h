@@ -73,6 +73,7 @@ namespace tiny::t86 {
             POP,
             FPOP,
             PUTCHAR,
+            PUTNUM,
             GETCHAR,
             FADD,
             FSUB,
@@ -1017,6 +1018,36 @@ class INS_NAME : public ConditionalJumpInstruction {          \
         PUTCHAR(Register reg, std::ostream& os = std::cout) : reg_(reg), os_(os) {}
 
         Type type() const override { return Type::PUTCHAR; }
+
+        std::size_t length() const override;
+
+        bool needsAlu() const override {
+            return false;
+        }
+
+        std::vector<Operand> operands() const override {
+            return { reg_ };
+        }
+
+        std::vector<Product> produces() const override {
+            return {};
+        }
+
+        void execute(ReservationStation::Entry&) const override {}
+
+        void retire(ReservationStation::Entry& entry) const override;
+
+    private:
+        Register reg_;
+
+        std::ostream& os_;
+    };
+    
+    class PUTNUM : public Instruction {
+    public:
+        PUTNUM(Register reg, std::ostream& os = std::cout) : reg_(reg), os_(os) {}
+
+        Type type() const override { return Type::PUTNUM; }
 
         std::size_t length() const override;
 

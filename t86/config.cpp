@@ -219,6 +219,10 @@ namespace tiny::t86 {
         return 1;
     }
 
+    std::size_t PUTNUM::length() const {
+        return 1;
+    }
+
     std::size_t GETCHAR::length() const {
         return 1;
     }
