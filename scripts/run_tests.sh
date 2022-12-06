@@ -2,8 +2,11 @@
 
 if [[ "$#" -ne 1 ]]; then
     echo "Usage: run_tests.sh t86-cli"
+    exit 1
 fi
 
+set -e
+set -o xtrace
 
 ./scripts/build.sh
 for file in t86-cli/tests/*.in; do

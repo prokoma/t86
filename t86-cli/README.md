@@ -35,3 +35,5 @@ Example of text section:
 
 Each line begins with an address. This is NOT mandatory and the address is actually ignored. It is hovewer encouraged to include it because the file is alot more readable. Next is the name of the instruction itself. Those names are consistent with the names provided in T86 README. Then the operand follows. They may be arbitrary number of them, depending on the instruction used. `;` begins an comment. Those may be on the end of the line or on an otherwise empty line.
 
+Operands are the same as in T86 documentation. Beware when using substraction, for example `0x0 MOV R0, R1 - 1` **HAS** to be written as `0x0 MOV R0, R1 + -1`.
+

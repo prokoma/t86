@@ -55,7 +55,11 @@ public:
             return Token::TIMES;
         } else if (c == '.') {
             return Token::DOT;
-        } else if (isdigit(c)) {
+        } else if (isdigit(c) || c == '-') {
+            int neg = c == '-' ? -1 : 1;
+            if (neg == -1) {
+                c = input.get();
+            }
             std::string num{c};
             while (true) {
                 c = input.get();
@@ -65,7 +69,7 @@ public:
                 }
                 num += c;
             }
-            number = std::stoi(num);
+            number = neg * std::stoi(num);
             return Token::NUM;
         } else {
             std::string str{c};
@@ -150,6 +154,15 @@ public:
         if (curtok == Token::ID) {
             std::string regname = lex.getId();
             GetNext();
+            // Reg + Imm
+            if (curtok == Token::PLUS) {
+                if (GetNext() != Token::NUM) {
+                    throw ParserError("After Reg + _ there can be only number");
+                }
+                int imm = lex.getNumber();
+                GetNext();
+                return getRegister(regname) + imm;
+            }
             auto reg = getRegister(regname);
             return reg;
         } else if (curtok == Token::NUM) {
@@ -255,7 +268,6 @@ public:
         } else if (ins_name == "LEA") {
             auto dest = Operand();
             CHECK_COMMA();
-            ExpectTok(Token::COMMA, GetNextPrev(), []{ return "Expected comma to separate arguments."; });
             auto from = Operand();
 
             return new tiny::t86::LEA(dest.getRegister(), from);
@@ -270,7 +282,6 @@ public:
         } else if (ins_name == "SUB") {
             auto dest = Operand();
             CHECK_COMMA();
-            ExpectTok(Token::COMMA, GetNextPrev(), []{ return "Expected comma to separate arguments."; });
             auto from = Operand();
             return new tiny::t86::SUB{dest.getRegister(), from};
         } else if (ins_name == "INC") {
@@ -379,13 +390,13 @@ public:
             return new tiny::t86::JZ(dest);
         } else if (ins_name == "JNZ") {
             auto dest = Operand();
-            return new tiny::t86::JZ(dest);
+            return new tiny::t86::JNZ(dest);
         } else if (ins_name == "JE") {
             auto dest = Operand();
-            return new tiny::t86::JZ(dest);
+            return new tiny::t86::JE(dest);
         } else if (ins_name == "JNE") {
             auto dest = Operand();
-            return new tiny::t86::JZ(dest);
+            return new tiny::t86::JNE(dest);
         } else if (ins_name == "JG") {
             auto dest = Operand();
             return new tiny::t86::JG(dest);
