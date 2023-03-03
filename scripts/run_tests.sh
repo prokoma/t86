@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ "$#" -ne 1 ]]; then
-    echo "Usage: run_tests.sh t86-cli"
+    echo "Usage: run_tests.sh path/to/t86-cli"
     exit 1
 fi
 
