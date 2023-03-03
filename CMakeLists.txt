@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(t86)
 
+add_compile_options(-fsanitize=address)
+add_link_options(-fsanitize=address)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_STANDARD 20)

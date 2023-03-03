@@ -1,5 +1,6 @@
 #include <fstream>
 
+#include "../common/config.h"
 #include "parser.h"
 
 using namespace tiny::t86;
@@ -20,6 +21,9 @@ int main(int argc, char* argv[]) {
         std::cerr << "Unable to open file `" << argv[2] << "`\n";
         return 3;
     }
+
+    if(argc > 3)
+        tiny::config.parse(argc - 2, argv + 2); // parse additional options after input file
     
     Parser parser(f);
     tiny::t86::Program program;
