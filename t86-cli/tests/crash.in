@@ -1,0 +1,9 @@
+.text
+PUSH R1
+PUSH R2
+MOV [1], 4546545
+MOV [1], 2
+MOV R1, 1
+PUTNUM R1
+HALT
+
