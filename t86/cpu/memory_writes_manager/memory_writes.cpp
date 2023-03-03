@@ -55,5 +55,11 @@ namespace tiny::t86 {
         return removed;
     }
 
+    MemoryWrite& MemoryWrites::getWrite(MemoryWrite::Id id) {
+        auto it = find(id);
+        assert(it != writes_.end() && "Unknown id");
+        return *it;
+    }
+
 
 }

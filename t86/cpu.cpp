@@ -284,7 +284,7 @@ namespace tiny::t86 {
         return writesManager_.registerPendingWrite();
     }
 
-    MemoryWrite& Cpu::getWrite(MemoryWrite::Id id) const {
+    MemoryWrite& Cpu::getWrite(MemoryWrite::Id id) {
         return writesManager_.getWrite(id);
     }
 

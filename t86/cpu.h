@@ -119,7 +119,7 @@ namespace tiny::t86 {
 
         std::optional<uint64_t> readMemory(uint64_t address, MemoryWrite::Id maxId);
 
-        MemoryWrite& getWrite(MemoryWrite::Id id) const;
+        MemoryWrite& getWrite(MemoryWrite::Id id);
 
         void writeMemory(MemoryWrite::Id id);
 

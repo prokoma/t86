@@ -16,6 +16,8 @@ namespace tiny::t86 {
          */
         MemoryWrite& add(MemoryWrite::Id id, std::size_t address);
 
+        MemoryWrite& getWrite(MemoryWrite::Id id);
+
         /**
          * Returns optional element of either same or lesser id (using comp function)
          */

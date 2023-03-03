@@ -34,7 +34,7 @@ namespace tiny::t86 {
         void specifyAddress(MemoryWrite::Id, std::size_t address);
 
         /// Specify value of the write, this does not transitions the write to outgoing state
-        void specifyValue(MemoryWrite::Id, uint64_t value) const;
+        void specifyValue(MemoryWrite::Id, uint64_t value);
 
         /// Starts the writing
         void startWriting(MemoryWrite::Id id, RAM& ram);
@@ -51,14 +51,15 @@ namespace tiny::t86 {
          */
         std::optional<MemoryWrite> previousWrite(std::size_t address, MemoryWrite::Id maxId) const;
 
-        MemoryWrite& getWrite(MemoryWrite::Id id) const;
+        MemoryWrite& getWrite(MemoryWrite::Id id);
 
     private:
         MemoryWrite::Id currentId{0};
 
+        /// Maps memory address to a collection of pending writes
         std::unordered_map<std::size_t, MemoryWrites> writesMap_;
 
-        std::unordered_map<MemoryWrite::Id, MemoryWrite&> writesById;
+        std::unordered_map<MemoryWrite::Id, std::size_t> writeAddressMap_;
 
         std::set<MemoryWrite::Id, std::greater<>> unspecifiedWrites_;
     };

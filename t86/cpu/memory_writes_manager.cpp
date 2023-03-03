@@ -12,7 +12,8 @@ namespace tiny::t86 {
 
     MemoryWrite::Id MemoryWritesManager::registerPendingWrite(std::size_t address) {
         MemoryWrite::Id writeId = ++currentId;
-        writesById.emplace(writeId, writesMap_[address].add(writeId, address));
+        writesMap_[address].add(writeId, address);
+        writeAddressMap_.emplace(writeId, address);
         return writeId;
     }
 
@@ -20,10 +21,11 @@ namespace tiny::t86 {
         std::size_t erased = unspecifiedWrites_.erase(id);
         assert(erased == 1
                 && "Trying to specify address for invalid, unknown or already specified write id");
-        writesById.emplace(id, writesMap_[address].add(id, address));
+        writesMap_[address].add(id, address);
+        writeAddressMap_.emplace(id, address);
     }
 
-    void MemoryWritesManager::specifyValue(MemoryWrite::Id id, uint64_t value) const {
+    void MemoryWritesManager::specifyValue(MemoryWrite::Id id, uint64_t value) {
         auto& write = getWrite(id);
         write.setValue(value);
     }
@@ -42,7 +44,7 @@ namespace tiny::t86 {
         for (auto& [address, writes] : writesMap_) {
             auto removedIds = writes.removeFinished(ram);
             for (MemoryWrite::Id id : removedIds) {
-                writesById.erase(id);
+                writeAddressMap_.erase(id);
             }
         }
     }
@@ -51,21 +53,24 @@ namespace tiny::t86 {
         for (auto& [address, writes] : writesMap_) {
             auto removedIds = writes.removePending();
             for (MemoryWrite::Id id : removedIds) {
-                writesById.erase(id);
+                writeAddressMap_.erase(id);
             }
         }
         unspecifiedWrites_.clear();
     }
 
-    MemoryWrite& MemoryWritesManager::getWrite(MemoryWrite::Id id) const {
-        auto it = writesById.find(id);
-        assert(it != writesById.end() && "Unknown id");
-        return it->second;
+    MemoryWrite& MemoryWritesManager::getWrite(MemoryWrite::Id id) {
+        auto it = writeAddressMap_.find(id);
+        assert(it != writeAddressMap_.end() && "Unknown id");
+        auto it2 = writesMap_.find(it->second);
+        assert(it2 != writesMap_.end() && "Unknown id (inconsistent writeAddressMap_ and writesMap_)");
+        return it2->second.getWrite(id);
     }
 
     void MemoryWritesManager::startWriting(MemoryWrite::Id id, RAM& ram) {
         MemoryWrite& write = getWrite(id);
-        assert(write.isPending() && write.hasValue());
+        assert(write.isPending());
+        assert(write.hasValue());
         write.setWriteId(ram.write(write.address(), write.value()));
     }
 }
