@@ -1,4 +1,5 @@
 #include <fstream>
+#include <iostream>
 
 #include "../common/config.h"
 #include "parser.h"
@@ -40,7 +41,14 @@ int main(int argc, char* argv[]) {
     tiny::t86::Cpu cpu{};
 
     cpu.start(std::move(program));
-    while (!cpu.halted()) {
-        cpu.tick();
+    try {
+        while (!cpu.halted()) {
+            cpu.tick();
+        }
+    } catch(std::exception &ex) {
+        utils::output(std::cerr, "Exception {} while ticking CPU: {}", typeid(ex).name(), ex.what());
+        std::cerr << std::endl;
+        cpu.dumpState(std::cerr);
+        throw ex; // rethrow for debugger
     }
 }

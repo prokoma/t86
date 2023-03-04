@@ -345,6 +345,22 @@ namespace tiny::t86 {
                 throw InvalidOperand(reg);
             }
         }
+
+        if (destination_.isRegister()) {
+            if (!value_.isValue() && !value_.isRegister() && !value_.isMemoryImmediate() && !value_.isMemoryRegister() && !value_.isMemoryRegisterOffset() && !value_.isMemoryRegisterScaled() && !value_.isMemoryRegisterRegister() && !value_.isMemoryRegisterOffsetRegister() && !value_.isMemoryRegisterRegisterScaled() && !value_.isMemoryRegisterOffsetRegisterScaled() && !value_.isFloatRegister()) {
+                throw InvalidOperand(value_);
+            }
+        } else if (destination_.isFloatRegister()) {
+            if (!value_.isFloatValue() && !value_.isFloatRegister() && !value_.isRegister() && !value_.isMemoryImmediate() && !value_.isMemoryRegister()) {
+                throw InvalidOperand(value_);
+            }
+        } else if (destination_.isMemoryImmediate() || destination_.isMemoryRegister() || destination_.isMemoryRegisterOffset() || destination_.isMemoryRegisterScaled() || destination_.isMemoryRegisterRegister() || destination_.isMemoryRegisterOffsetRegister() || destination_.isMemoryRegisterRegisterScaled() || destination_.isMemoryRegisterOffsetRegisterScaled()) {
+            if (!value_.isValue() && !value_.isRegister() && !value_.isFloatRegister()) {
+                throw InvalidOperand(value_);
+            }
+        } else {
+            throw InvalidOperand(destination_);
+        }
     }
 
     void MOV::execute(ReservationStation::Entry& entry) const {
@@ -515,14 +531,6 @@ INS_NAME::INS_NAME(Operand address) : ConditionalJumpInstruction([](Alu::Flags f
         entry.processJump(operands[2].getValue() != 0);
     }
 
-    void PUSH::retire(ReservationStation::Entry& entry) const {
-        const auto& operands = entry.operands();
-        const auto& memWriteIds = entry.memoryWriteIds();
-        assert(operands.size() == 2);
-        assert(memWriteIds.size() == 1);
-        entry.writeMemory(memWriteIds[0]);
-    }
-
     void PUSH::execute(ReservationStation::Entry& entry) const {
         const auto& operands = entry.operands();
         const auto& memWriteIds = entry.memoryWriteIds();
@@ -533,6 +541,13 @@ INS_NAME::INS_NAME(Operand address) : ConditionalJumpInstruction([](Alu::Flags f
         entry.setStackPointer(operands[1].getValue() - 1);
     }
 
+    void PUSH::retire(ReservationStation::Entry& entry) const {
+        const auto& operands = entry.operands();
+        const auto& memWriteIds = entry.memoryWriteIds();
+        assert(operands.size() == 2);
+        assert(memWriteIds.size() == 1);
+        entry.writeMemory(memWriteIds[0]);
+    }
 
     void FPUSH::execute(ReservationStation::Entry& entry) const {
         const auto& operands = entry.operands();
@@ -639,6 +654,10 @@ INS_NAME::INS_NAME(Operand address) : ConditionalJumpInstruction([](Alu::Flags f
     void LEA::validate() const {
         if (reg_.isSpecial() || reg_ == Register::StackPointer() || reg_ == Register::StackBasePointer()) {
             throw InvalidOperand(reg_);
+        }
+
+        if (!mem_.isMemoryRegisterOffset() && !mem_.isMemoryRegisterRegister() && !mem_.isMemoryRegisterScaled() && !mem_.isMemoryRegisterOffsetRegister() && !mem_.isMemoryRegisterScaled() && !mem_.isMemoryRegisterOffsetRegisterScaled()) {
+            throw InvalidOperand(mem_);
         }
     }
 

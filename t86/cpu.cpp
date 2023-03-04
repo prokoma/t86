@@ -77,8 +77,20 @@ namespace tiny::t86 {
         return *reinterpret_cast<double*>(&val);
     }
 
+    Cpu::Cpu() : Cpu(Config::instance().registerCnt(),
+                     Config::instance().floatRegisterCnt(),
+                     Config::instance().aluCnt(),
+                     Config::instance().reservationStationEntriesCnt(),
+                     Config::instance().ramSize(),
+                     Config::instance().ramGatesCount()) {}
+
     Cpu::Cpu(std::size_t registerCount, std::size_t floatRegisterCount, std::size_t aluCnt)
-            : Cpu(registerCount, floatRegisterCount, aluCnt, aluCnt * 2, Config::instance().ramSize(), Config::instance().ramGatesCount()) {}
+            : Cpu(registerCount,
+                floatRegisterCount,
+                aluCnt,
+                aluCnt * 2,
+                Config::instance().ramSize(),
+                Config::instance().ramGatesCount()) {}
 
     Cpu::Cpu(std::size_t registerCount, std::size_t floatRegisterCount, std::size_t aluCnt, std::size_t reservationStationEntriesCount,
         std::size_t ramSize, std::size_t ramGatesCnt)
@@ -91,9 +103,12 @@ namespace tiny::t86 {
               rat_(*this, registerCount, floatRegisterCount),
               ram_(ramSize, ramGatesCnt)
     {
-        // To be sure, theoretically not needed
+        // Clearing of the registers is not required per se, but we need to mark them as available, which setRegister does.
         for (std::size_t i = 0; i < registerCount; ++i) {
             setRegister(Register{i}, 0);
+        }
+        for (std::size_t i = 0; i < floatRegisterCount; ++i) {
+            setFloatRegister(FloatRegister{i}, 0);
         }
         setRegister(Register::ProgramCounter(), 0);
         setRegister(Register::Flags(), 0);
@@ -260,6 +275,24 @@ namespace tiny::t86 {
         }
     }
 
+    void Cpu::dumpState(std::ostream& os) const {
+        auto printInstructionEntry = [&](const std::optional<InstructionEntry>& entry) {
+            if (entry) {
+                utils::output(os, "{} at {}", entry->instruction->toString(), entry->pc);
+            } else {
+                utils::output(os, "<none>");
+            }
+        };
+
+        utils::output(os, "Instruction being fetched: ");
+        printInstructionEntry(instructionFetch_);
+        os << std::endl;
+
+        utils::output(os, "Instruction being decoded: ");
+        printInstructionEntry(instructionDecode_);
+        os << std::endl;
+    }
+
     void Cpu::unrollSpeculation(const RegisterAllocationTable& rat) {
         flushPipeline();
         // Restore rat
@@ -271,10 +304,6 @@ namespace tiny::t86 {
         // Remove pending writes
         writesManager_.removePending();
     }
-
-    Cpu::Cpu() : Cpu(Cpu::Config::instance().registerCnt(),
-                     Cpu::Config::instance().aluCnt(),
-                     Cpu::Config::instance().reservationStationEntriesCnt()) {}
 
     MemoryWrite::Id Cpu::registerPendingWrite(Memory::Immediate mem) {
         return writesManager_.registerPendingWrite(mem.index());

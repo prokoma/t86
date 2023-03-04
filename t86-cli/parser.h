@@ -320,14 +320,14 @@ public:
     tiny::t86::Register Register() {
         auto op = Operand();
         if(!op.isRegister())
-            throw ParserError(utils::format("[{}]: Expected Reg, got {} ({})", lex.getLocation(), tiny::t86::Operand::typeToString(op.getType())));
+            throw ParserError(utils::format("[{}]: Expected Reg, got {} ({})", lex.getLocation(), tiny::t86::Operand::typeToString(op.getType()), op.toString()));
         return op.getRegister();
     }
 
     tiny::t86::FloatRegister FloatRegister() {
         auto op = Operand();
         if(!op.isFloatRegister())
-            throw ParserError(utils::format("[{}]: Expected FReg, got {} ({})", lex.getLocation(), tiny::t86::Operand::typeToString(op.getType())));
+            throw ParserError(utils::format("[{}]: Expected FReg, got {} ({})", lex.getLocation(), tiny::t86::Operand::typeToString(op.getType()), op.toString()));
         return op.getFloatRegister();
     }
 

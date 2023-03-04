@@ -1,8 +1,10 @@
 #include "register_allocation_table.h"
 
 #include <cassert>
+#include <stdexcept>
 
 #include "../cpu.h"
+#include "../../common/helpers.h"
 
 namespace tiny::t86 {
 
@@ -81,16 +83,22 @@ namespace tiny::t86 {
     }
 
     PhysicalRegister RegisterAllocationTable::translate(Register reg) const {
-        return table_.at(reg);
+        auto it = table_.find(reg);
+        if(it == table_.end())
+            throw std::out_of_range(utils::format("Didn't find translation mapping for {}, check maximum register count", reg.toString()));
+        return it->second;
     }
 
     PhysicalRegister RegisterAllocationTable::translate(FloatRegister fReg) const {
-        return table_.at(fReg);
+        auto it = table_.find(fReg);
+        if(it == table_.end())
+            throw std::out_of_range(utils::format("Didn't find translation mapping for {}, check maximum register count", fReg.toString()));
+        return it->second;
     }
 
     bool RegisterAllocationTable::isUnmapped(PhysicalRegister reg) const {
         return std::all_of(table_.begin(), table_.end(), [reg](const auto& mapping) {
-            return mapping.second.index() != reg.index();
+            return mapping.second != reg;
         });
     }
 }

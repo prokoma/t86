@@ -482,6 +482,7 @@ namespace tiny::t86 {
     Memory::RegisterOffset Operand::supply(const Memory::RegisterOffsetRegisterScaled& mem, int64_t val) {
         return Memory::RegisterOffset(supply(mem.regOffsetRegScaled(), val));
     }
+
     double Operand::supply(const FloatRegister&, double val) {
         return val;
     }

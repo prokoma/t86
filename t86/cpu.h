@@ -150,6 +150,8 @@ namespace tiny::t86 {
         void unrollSpeculation(const RegisterAllocationTable& rat);
 
         void flushPipeline();
+
+        void dumpState(std::ostream& os) const;
     public:
         /// Following function are for debug only
         /// In execution, version with PhysicalRegister should be used

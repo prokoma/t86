@@ -634,7 +634,7 @@ class INS_NAME : public UnaryArithmeticInstruction {      \
 
         FPUSH(FloatRegister fReg) : val_(fReg) {}
 
-        FPUSH(Operand fReg) : val_(fReg) {}
+        FPUSH(Operand val) : val_(val) {}
 
         Type type() const override { return Type::FPUSH; }
 

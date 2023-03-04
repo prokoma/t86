@@ -6,6 +6,7 @@
 #include <string>
 #include <stdexcept>
 #include <variant>
+#include <compare>
 
 namespace tiny::t86 {
     class RegisterOffset;
@@ -71,17 +72,7 @@ namespace tiny::t86 {
 
         RegisterOffsetRegister operator+(RegisterOffset regOffset) const;
 
-        bool operator<(Register other) const {
-            return index_ < other.index_;
-        }
-
-        bool operator==(Register other) const {
-            return index_ == other.index_;
-        }
-
-        bool operator!=(Register other) const {
-            return index_ != other.index_;
-        }
+        auto operator<=>(const Register& other) const = default;
 
         std::string toString() const {
             switch (index_) {
@@ -286,13 +277,7 @@ namespace tiny::t86 {
             return index_;
         }
 
-        bool operator<(const FloatRegister other) const {
-            return index_ < other.index_;
-        }
-
-        bool operator==(const FloatRegister other) const {
-            return index_ == other.index_;
-        }
+        auto operator<=>(const FloatRegister& other) const = default;
 
         std::string toString() const {
             return "FReg" + std::to_string(index_);
@@ -314,13 +299,7 @@ namespace tiny::t86 {
             return index_;
         }
 
-        bool operator<(const PhysicalRegister& other) const {
-            return index_ < other.index_;
-        }
-
-        bool operator==(const PhysicalRegister& other) const {
-            return index_ == other.index_;
-        }
+        auto operator<=>(const PhysicalRegister& other) const = default;
 
     private:
         size_t index_;
