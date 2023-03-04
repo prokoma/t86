@@ -7,6 +7,7 @@
 #include "cpu.h"
 #include "cpu/reservation_station.h"
 #include "cpu/register.h"
+#include "../common/helpers.h"
 
 namespace tiny::t86 {
     std::string Instruction::typeToString(Instruction::Type type) {
@@ -180,9 +181,18 @@ namespace tiny::t86 {
         return type == other.type && operandTypes == other.operandTypes;
     }
 
+    Instruction::InvalidOperand::InvalidOperand(Operand op)
+        : std::runtime_error(utils::format(
+              "Invalid use of operand {} ({})",
+              Operand::typeToString(op.getType()), op.toString())) {}
+
     void BinaryArithmeticInstruction::validate() const {
         if (reg_.isSpecial()) {
             throw InvalidOperand(reg_);
+        }
+
+        if (!val_.isRegister() && !val_.isRegisterOffset() && !val_.isValue() && !val_.isMemoryImmediate() && !val_.isMemoryRegister() && !val_.isMemoryRegisterOffset()) {
+            throw InvalidOperand(val_);
         }
     }
 
@@ -234,6 +244,11 @@ namespace tiny::t86 {
     //BINARY_ARITH_INS_IMPL(RRL, &Alu::bit_right_roll)
 
 
+    void FloatBinaryArithmeticInstruction::validate() const {
+        if (!val_.isFloatRegister() && !val_.isFloatValue()) {
+            throw InvalidOperand(val_);
+        }
+    }
 
     void FloatBinaryArithmeticInstruction::execute(ReservationStation::Entry& entry) const {
         const auto& operands = entry.operands();
@@ -245,7 +260,8 @@ namespace tiny::t86 {
 
 #define FLOAT_BINARY_ARITH_INS_IMPL(INS_NAME, OP)                                                        \
     INS_NAME::INS_NAME(FloatRegister fReg, double val) : FloatBinaryArithmeticInstruction(OP, fReg, val) {}        \
-    INS_NAME::INS_NAME(FloatRegister fReg, FloatRegister val) : FloatBinaryArithmeticInstruction(OP, fReg, val) {}
+    INS_NAME::INS_NAME(FloatRegister fReg, FloatRegister val) : FloatBinaryArithmeticInstruction(OP, fReg, val) {} \
+    INS_NAME::INS_NAME(FloatRegister fReg, Operand val) : FloatBinaryArithmeticInstruction(OP, fReg, val) {}
 
     FLOAT_BINARY_ARITH_INS_IMPL(FADD, &Alu::fadd)
     FLOAT_BINARY_ARITH_INS_IMPL(FSUB, &Alu::fsubtract)
@@ -726,4 +742,5 @@ INS_NAME::INS_NAME(Operand address) : ConditionalJumpInstruction([](Alu::Flags f
         assert(operands.size() == 1);
         entry.setRegister(reg_, static_cast<int64_t>(operands[0].getFloatValue()));
     }
-}
+
+} // namespace tiny::t86

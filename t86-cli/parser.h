@@ -11,10 +11,21 @@
 #include "../common/helpers.h"
 
 
+class ParserError : std::exception {
+public:
+    ParserError(std::string message) : message(std::move(message)) { }
+    const char* what() const noexcept override {
+        return message.c_str();
+    }
+private:
+    std::string message;
+};
+
 enum class Token {
     ID,
     DOT,
     NUM,
+    NUM_FLOAT,
     LBRACKET,
     RBRACKET,
     END,
@@ -24,17 +35,27 @@ enum class Token {
     COMMA,
 };
 
+struct SourceLocation {
+    int line{1};
+    int col{1};
+
+    friend std::ostream& operator <<(std::ostream& os, SourceLocation loc) {
+        utils::output(os, "{}:{}", loc.line, loc.col);
+        return os;
+    }
+};
+
 /// Parses text representation of T86 into in-memory representation
 class Lexer {
 public:
     explicit Lexer(std::istream& input) noexcept : input(input) { }
 
     Token getNext() {
-        char c = input.get();
+        char c = getChar();
         
         if (c == '#') {
             while(c != EOF && c != '\n') {
-                c = input.get();
+                c = getChar();
             }
             return getNext();
         } else if (c == EOF) {
@@ -58,25 +79,42 @@ public:
         } else if (isdigit(c) || c == '-') {
             int neg = c == '-' ? -1 : 1;
             if (neg == -1) {
-                c = input.get();
+                c = getChar();
             }
+            // TODO: inf, nan
+            bool has_dot = false, has_e = false; // 1.2e5
             std::string num{c};
             while (true) {
-                c = input.get();
-                if (!isdigit(c)) {
-                    input.unget();
+                c = getChar();
+                if (c == '.') {
+                    if(has_dot || has_e) {
+                        throw ParserError(utils::format("Invalid floating point literal: {}{}", num, c));
+                    }
+                    has_dot = true;
+                } else if(c == 'e') {
+                    if(has_e) {
+                        throw ParserError(utils::format("Invalid floating point literal: {}{}", num, c));
+                    }
+                    has_e = true;
+                } else if (!isdigit(c)) {
+                    undoGetChar();
                     break;
                 }
                 num += c;
             }
-            number = neg * std::stoi(num);
-            return Token::NUM;
+            if(has_dot || has_e) {
+                float_number = neg * std::stod(num);
+                return Token::NUM_FLOAT;
+            } else {
+                number = neg * std::stoll(num);
+                return Token::NUM;
+            }
         } else {
             std::string str{c};
             while (true) {
-                c = input.get();
+                c = getChar();
                 if (!isalnum(c)) {
-                    input.unget();
+                    undoGetChar();
                     break;
                 }
                 str += c;
@@ -87,21 +125,32 @@ public:
     }
 
     std::string getId() const { return id; }
-    int getNumber() const noexcept { return number; }
+    int64_t getNumber() const noexcept { return number; }
+    double getFloatNumber() const noexcept { return float_number; }
+
+    SourceLocation getLocation() const { return loc; }
 private:
-    int number{-1};
+    int64_t number{-1};
+    double float_number{-1};
     std::string id;
     std::istream& input;
-};
+    SourceLocation prev_loc, loc;
 
-class ParserError : std::exception {
-public:
-    ParserError(std::string message) : message(std::move(message)) { }
-    const char* what() const noexcept override {
-        return message.c_str();
+    char getChar() {
+        char c = input.get();
+        prev_loc = loc;
+        if(c == '\n') {
+            loc = {loc.line + 1, 1};
+        } else {
+            loc.col++;
+        }
+        return c;
     }
-private:
-    std::string message;
+
+    void undoGetChar() {
+        input.unget();
+        loc = prev_loc;
+    }
 };
 
 class Parser {
@@ -112,6 +161,11 @@ public:
             throw ParserError(message());
         }
     }
+    // static void ExpectTok(Token expected, Token tok, const std::string& message) {
+    //     if(expected != tok) {
+    //         throw ParserError(message);
+    //     }
+    // }
 
     /// Fetches new token and returns previous (the one that was in curtok until this function call) one.
     Token GetNextPrev() {
@@ -125,7 +179,7 @@ public:
     }
 
     void Section() {
-        ExpectTok(Token::ID, curtok, []{ return "Expected '.section_name'"; });
+        ExpectTok(Token::ID, curtok, [&]{ return utils::format("[{}]: Expected '.section_name'", lex.getLocation()); });
         std::string section_name = lex.getId();
         GetNextPrev();
         if (section_name == "text") {
@@ -135,7 +189,19 @@ public:
         }
     }
 
-    tiny::t86::Register getRegister(std::string_view regname) {
+    bool isFloatRegister(std::string_view regname) const {
+        return regname.starts_with("FR");
+    }
+
+    tiny::t86::FloatRegister getFloatRegister(std::string_view regname) const {
+        if (!regname.starts_with("FR")) {
+            throw ParserError(utils::format("Float registers must begin with FR, got {}", regname));
+        }
+        regname.remove_prefix(2);
+        return tiny::t86::FloatRegister{static_cast<size_t>(std::atoi(regname.data()))};
+    }
+
+    tiny::t86::Register getRegister(std::string_view regname) const {
         if (regname == "BP") {
             return tiny::t86::Register::StackBasePointer();
         } else if (regname == "SP") {
@@ -159,16 +225,25 @@ public:
                 if (GetNext() != Token::NUM) {
                     throw ParserError("After Reg + _ there can be only number");
                 }
-                int imm = lex.getNumber();
+                auto imm = lex.getNumber();
                 GetNext();
                 return getRegister(regname) + imm;
             }
-            auto reg = getRegister(regname);
-            return reg;
+            if(isFloatRegister(regname)) {
+                auto freg = getFloatRegister(regname);
+                return freg;
+            } else {
+                auto reg = getRegister(regname);
+                return reg;
+            }
         } else if (curtok == Token::NUM) {
-            int imm = lex.getNumber();
+            auto imm = lex.getNumber();
             GetNext();
-            return imm;
+            return tiny::t86::Operand(imm);
+        } else if (curtok == Token::NUM_FLOAT) {
+            auto fimm = lex.getFloatNumber();
+            GetNext();
+            return tiny::t86::Operand(fimm);
         } else if (curtok == Token::LBRACKET) {
             // First is imm
             if (GetNext() == Token::NUM) {
@@ -242,6 +317,20 @@ public:
         UNREACHABLE;
     }
 
+    tiny::t86::Register Register() {
+        auto op = Operand();
+        if(!op.isRegister())
+            throw ParserError(utils::format("[{}]: Expected Reg, got {} ({})", lex.getLocation(), tiny::t86::Operand::typeToString(op.getType())));
+        return op.getRegister();
+    }
+
+    tiny::t86::FloatRegister FloatRegister() {
+        auto op = Operand();
+        if(!op.isFloatRegister())
+            throw ParserError(utils::format("[{}]: Expected FReg, got {} ({})", lex.getLocation(), tiny::t86::Operand::typeToString(op.getType())));
+        return op.getFloatRegister();
+    }
+
 #define CHECK_COMMA() do { ExpectTok(Token::COMMA, GetNextPrev(), []{ return "Expected comma to separate arguments"; });} while (false)
 
     tiny::t86::Instruction* Instruction() {
@@ -260,17 +349,17 @@ public:
             auto from = Operand();
             return new tiny::t86::MOV{dest, from};
         } else if (ins_name == "ADD") {
-            auto dest = Operand();
+            auto dest = Register();
             CHECK_COMMA();
             auto from = Operand();
 
-            return new tiny::t86::ADD{dest.getRegister(), from};
+            return new tiny::t86::ADD{dest, from};
         } else if (ins_name == "LEA") {
-            auto dest = Operand();
+            auto dest = Register();
             CHECK_COMMA();
             auto from = Operand();
 
-            return new tiny::t86::LEA(dest.getRegister(), from);
+            return new tiny::t86::LEA(dest, from);
         } else if (ins_name == "HALT") {
             return new tiny::t86::HALT{};
         } else if (ins_name == "DBG") {
@@ -280,88 +369,87 @@ public:
         } else if (ins_name == "BREAK") {
             return new tiny::t86::BREAK{};
         } else if (ins_name == "SUB") {
-            auto dest = Operand();
+            auto dest = Register();
             CHECK_COMMA();
             auto from = Operand();
-            return new tiny::t86::SUB{dest.getRegister(), from};
+            return new tiny::t86::SUB{dest, from};
         } else if (ins_name == "INC") {
-            auto op = Operand();
-            return new tiny::t86::INC{op.getRegister()};
+            auto op = Register();
+            return new tiny::t86::INC{op};
         } else if (ins_name == "DEC") {
-            auto op = Operand();
-            return new tiny::t86::DEC{op.getRegister()};
+            auto op = Register();
+            return new tiny::t86::DEC{op};
         } else if (ins_name == "NEG") {
-            auto op = Operand();
-            return new tiny::t86::DEC{op.getRegister()};
+            auto op = Register();
+            return new tiny::t86::DEC{op};
         } else if (ins_name == "MUL") {
-            auto dest = Operand();
+            auto dest = Register();
             CHECK_COMMA();
             auto from = Operand();
-            return new tiny::t86::MUL{dest.getRegister(), from};
+            return new tiny::t86::MUL{dest, from};
         } else if (ins_name == "DIV") {
-            auto dest = Operand();
+            auto dest = Register();
             CHECK_COMMA();
             auto from = Operand();
-            return new tiny::t86::DIV{dest.getRegister(), from};
+            return new tiny::t86::DIV{dest, from};
         } else if (ins_name == "MOD") {
-            auto dest = Operand();
+            auto dest = Register();
             CHECK_COMMA();
             auto from = Operand();
-            return new tiny::t86::MOD{dest.getRegister(), from};
+            return new tiny::t86::MOD{dest, from};
         } else if (ins_name == "IMUL") {
-            auto dest = Operand();
+            auto dest = Register();
             CHECK_COMMA();
             auto from = Operand();
-            return new tiny::t86::IMUL{dest.getRegister(), from};
+            return new tiny::t86::IMUL{dest, from};
         } else if (ins_name == "IDIV") {
-            auto dest = Operand();
+            auto dest = Register();
             CHECK_COMMA();
             auto from = Operand();
-            return new tiny::t86::IDIV{dest.getRegister(), from};
+            return new tiny::t86::IDIV{dest, from};
         } else if (ins_name == "AND") {
-            auto dest = Operand();
+            auto dest = Register();
             CHECK_COMMA();
             auto from = Operand();
-            return new tiny::t86::AND{dest.getRegister(), from};
+            return new tiny::t86::AND{dest, from};
         } else if (ins_name == "OR") {
-            auto dest = Operand();
+            auto dest = Register();
             CHECK_COMMA();
             auto from = Operand();
-            return new tiny::t86::OR{dest.getRegister(), from};
+            return new tiny::t86::OR{dest, from};
         } else if (ins_name == "XOR") {
-            auto dest = Operand();
+            auto dest = Register();
             CHECK_COMMA();
             auto from = Operand();
-            return new tiny::t86::XOR{dest.getRegister(), from};
+            return new tiny::t86::XOR{dest, from};
         } else if (ins_name == "NOT") {
             auto op = Operand();
             return new tiny::t86::NOT{op.getRegister()};
         } else if (ins_name == "LSH") {
-            auto dest = Operand();
+            auto dest = Register();
             CHECK_COMMA();
             auto from = Operand();
-            return new tiny::t86::LSH{dest.getRegister(), from};
+            return new tiny::t86::LSH{dest, from};
         } else if (ins_name == "RSH") {
-            auto dest = Operand();
+            auto dest = Register();
             CHECK_COMMA();
             auto from = Operand();
-            return new tiny::t86::RSH{dest.getRegister(), from};
+            return new tiny::t86::RSH{dest, from};
         } else if (ins_name == "CLF") {
             throw ParserError("CLF instruction is not implemented");
         } else if (ins_name == "CMP") {
-            auto dest = Operand();
+            auto dest = Register();
             CHECK_COMMA();
             auto from = Operand();
-            return new tiny::t86::CMP{dest.getRegister(), from};
+            return new tiny::t86::CMP{dest, from};
         } else if (ins_name == "FCMP") {
-            auto dest = Operand();
+            auto dest = FloatRegister();
             CHECK_COMMA();
             auto from = Operand();
             if (from.isFloatValue()) {
-                NOT_IMPLEMENTED;
-                // return new tiny::t86::FCMP{, from.getFloatValue()};
+                return new tiny::t86::FCMP{dest, from.getFloatValue()};
             } else if (from.isFloatRegister()) {
-                return new tiny::t86::FCMP{dest.getFloatRegister(), from.getFloatRegister()};
+                return new tiny::t86::FCMP{dest, from.getFloatRegister()};
             } else {
                 throw ParserError("FCMP must have either float value or float register as dest");
             }
@@ -375,13 +463,13 @@ public:
                 throw ParserError("JMP must have either register or value as dest");
             }
         } else if (ins_name == "LOOP") {
-            auto reg = Operand();
+            auto reg = Register();
             CHECK_COMMA();
             auto address = Operand();
             if (address.isRegister()) {
-                return new tiny::t86::LOOP{reg.getRegister(), address.getRegister()};
+                return new tiny::t86::LOOP{reg, address.getRegister()};
             } else if (address.isValue()) {
-                return new tiny::t86::LOOP{reg.getRegister(), static_cast<uint64_t>(address.getValue())};
+                return new tiny::t86::LOOP{reg, static_cast<uint64_t>(address.getValue())};
             } else {
                 throw ParserError("LOOP must have either register or value as dest");
             }
@@ -445,29 +533,47 @@ public:
             auto val = Operand();
             return new tiny::t86::FPUSH{val};
         } else if (ins_name == "POP") {
-            auto reg = Operand();
-            return new tiny::t86::POP{reg.getRegister()};
+            auto reg = Register();
+            return new tiny::t86::POP{reg};
         } else if (ins_name == "FPOP") {
-            auto reg = Operand();
-            return new tiny::t86::FPOP{reg.getFloatRegister()};
+            auto reg = FloatRegister();
+            return new tiny::t86::FPOP{reg};
         } else if (ins_name == "PUTCHAR") {
-            auto reg = Operand();
-            return new tiny::t86::PUTCHAR{reg.getRegister(), std::cout};
+            auto reg = Register();
+            return new tiny::t86::PUTCHAR{reg, std::cout};
         } else if (ins_name == "PUTNUM") {
-            auto reg = Operand();
-            return new tiny::t86::PUTNUM{reg.getRegister(), std::cout};
+            auto reg = Register();
+            return new tiny::t86::PUTNUM{reg, std::cout};
         } else if (ins_name == "FADD") {
-            NOT_IMPLEMENTED;
+            auto dest = FloatRegister();
+            CHECK_COMMA();
+            auto from = Operand();
+            return new tiny::t86::FADD{dest, from};
         } else if (ins_name == "FSUB") {
-            NOT_IMPLEMENTED;
+            auto dest = FloatRegister();
+            CHECK_COMMA();
+            auto from = Operand();
+            return new tiny::t86::FSUB{dest, from};
         } else if (ins_name == "FMUL") {
-            NOT_IMPLEMENTED;
+            auto dest = FloatRegister();
+            CHECK_COMMA();
+            auto from = Operand();
+            return new tiny::t86::FMUL{dest, from};
         } else if (ins_name == "FDIV") {
-            NOT_IMPLEMENTED;
+            auto dest = FloatRegister();
+            CHECK_COMMA();
+            auto from = Operand();
+            return new tiny::t86::FDIV{dest, from};
         } else if (ins_name == "EXT") {
-            NOT_IMPLEMENTED;
+            auto dest = FloatRegister();
+            CHECK_COMMA();
+            auto from = Register();
+            return new tiny::t86::EXT{dest, from};
         } else if (ins_name == "NRW") {
-            NOT_IMPLEMENTED;
+            auto dest = Register();
+            CHECK_COMMA();
+            auto from = FloatRegister();
+            return new tiny::t86::NRW{dest, from};
         } else if (ins_name == "NOP") {
             return new tiny::t86::NOP{};
         } else {
@@ -481,6 +587,11 @@ public:
         utils::logger("Parsing text section...");
         while (curtok == Token::NUM || curtok == Token::ID) {
             auto ins = Instruction();
+            try {
+                ins->validate();
+            } catch(tiny::t86::Instruction::InvalidOperand &err) {
+                throw ParserError(utils::format("[{}]: {}: {}", lex.getLocation(), tiny::t86::Instruction::typeToString(ins->type()), err.what()));
+            }
             program.push_back(ins);
             // if (GetNextPrev() != Token::SEMICOLON) {
             //     throw ParserError("Instruction must be terminated by semicolon");

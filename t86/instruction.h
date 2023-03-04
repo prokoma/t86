@@ -131,6 +131,7 @@ namespace tiny::t86 {
      */
     class Instruction::InvalidOperand : public std::runtime_error {
     public:
+        InvalidOperand(Operand op);
         InvalidOperand(Register reg) : std::runtime_error("Invalid use of register " + reg.toString()) {}
     };
 
@@ -257,9 +258,14 @@ namespace tiny::t86 {
         FloatBinaryArithmeticInstruction(std::function<Alu::FloatResult(double, double)> op, FloatRegister fReg, double val)
             : op_(std::move(op)), fReg_(fReg), val_(val) {}
 
+        FloatBinaryArithmeticInstruction(std::function<Alu::FloatResult(double, double)> op, FloatRegister fReg, Operand val)
+            : op_(std::move(op)), fReg_(fReg), val_(val) {}
+
         bool needsAlu() const override {
             return true;
         }
+
+        void validate() const override;
 
         void execute(ReservationStation::Entry& entry) const override;
 
@@ -286,6 +292,7 @@ namespace tiny::t86 {
     public:                                                    \
         INS_NAME(FloatRegister reg, FloatRegister val);        \
         INS_NAME(FloatRegister reg, double val);               \
+        INS_NAME(FloatRegister reg, Operand val);    \
         Type type() const override { return Type::INS_NAME; }  \
         std::size_t length() const override;                   \
     };

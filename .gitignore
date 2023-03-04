@@ -1,4 +1,5 @@
 *.a
 build
 .cache
-
+diff_out.tmp
+test_out.tmp
