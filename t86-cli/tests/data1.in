@@ -1,0 +1,6 @@
+.data
+DW 42
+.text
+MOV R0, [0]
+PUTNUM R0
+HALT

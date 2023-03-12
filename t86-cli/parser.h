@@ -184,6 +184,8 @@ public:
         GetNextPrev();
         if (section_name == "text") {
             Text();
+        } else if(section_name == "data") {
+            Data();
         } else {
             throw ParserError("Invalid section name");
         }
@@ -599,6 +601,30 @@ public:
         }
     }
 
+    void Data() {
+        utils::logger("Parsing data section...");
+        while (curtok == Token::NUM || curtok == Token::ID) {
+            // Address at the beginning is optional
+            if (curtok == Token::NUM) {
+                GetNextPrev();
+            }
+
+            ExpectTok(Token::ID, curtok, []{ return "Expected DW"; });
+            std::string op_name = lex.getId();
+            GetNextPrev();
+
+            if (op_name != "DW") {
+                throw ParserError(utils::format("[{}] Expected DW", lex.getLocation()));
+            }
+
+            ExpectTok(Token::NUM, curtok, []{ return "Expected number after DW"; });
+            auto word = lex.getNumber();
+            GetNextPrev();
+
+            data.emplace_back(word);
+        }
+    }
+
     tiny::t86::Program Parse() {
         if (curtok != Token::DOT) {
             throw ParserError("File does not contain any section");
@@ -606,12 +632,12 @@ public:
         while (GetNextPrev() == Token::DOT) {
             Section();
         }
-        return program;
+        return { program, data };
     }
 private:
     Lexer lex;
     Token curtok;
     std::vector<tiny::t86::Instruction*> program;
-    tiny::t86::ProgramBuilder builder;
+    std::vector<int64_t> data;
 };
 
