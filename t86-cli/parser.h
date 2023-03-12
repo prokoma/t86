@@ -246,36 +246,42 @@ public:
             auto fimm = lex.getFloatNumber();
             GetNext();
             return tiny::t86::Operand(fimm);
-        } else if (curtok == Token::LBRACKET) {
+        } else if (curtok == Token::LBRACKET) { // Mem
+            GetNext(); // '['
             // First is imm
-            if (GetNext() == Token::NUM) {
+            if (curtok == Token::NUM) {
                 auto val = lex.getNumber();
                 GetNext(); // 'num'
+                ExpectTok(Token::RBRACKET, curtok, []{ return "Expected ']' to close [Imm]\n"; });
                 GetNext(); // ']'
                 // [i]
                 return Mem(static_cast<uint64_t>(val));
             // First is register
             } else if (curtok == Token::ID) {
-                auto regname = lex.getId();
-                auto reg = getRegister(regname);
-                // Only register
-                if (GetNext() == Token::RBRACKET) {
-                    GetNext();
+                auto reg = getRegister(lex.getId());
+                GetNext(); // reg
+
+                if (curtok == Token::RBRACKET) { // Only register
+                    GetNext(); // ']'
                     // [Rx]
                     return Mem(reg);
-                }
-                // Has second with +
-                if (curtok == Token::PLUS) {
-                    GetNext();
+                } else if (curtok == Token::PLUS) { // Has second with +
+                    GetNext();  // '+'
                     // Can either be imm or register
                     if (curtok == Token::ID) {
                         auto reg2 = getRegister(lex.getId());
-                        if (GetNext() == Token::RBRACKET) {
-                            GetNext();
+                        GetNext(); // reg2
+
+                        if (curtok == Token::RBRACKET) {
+                            GetNext(); // ']'
                             return Mem(reg + reg2);
-                        } else if (curtok == Token::TIMES && GetNext() == Token::NUM) {
+                        } else if (curtok == Token::TIMES) {
+                            GetNext(); // '*'
+                            ExpectTok(Token::NUM, curtok, []{ return "Expected Imm in [Reg + Reg * Imm]\n"; });
                             auto val = lex.getNumber();
-                            ExpectTok(Token::RBRACKET, GetNext(), []{ return "Expected ']' to close dereference\n"; });
+                            GetNext(); // imm
+                            ExpectTok(Token::RBRACKET, curtok, []{ return "Expected ']' to close [Reg + Reg * Imm]\n"; });
+                            GetNext(); // ']'
                             return Mem(reg + reg2 * val);
                         }
                     } else if (curtok == Token::NUM) {
@@ -632,6 +638,8 @@ public:
         while (GetNextPrev() == Token::DOT) {
             Section();
         }
+        ExpectTok(Token::END, curtok, []{ return "Expected end of file"; });
+
         return { program, data };
     }
 private:
