@@ -612,12 +612,12 @@ public:
         while (curtok == Token::NUM || curtok == Token::ID) {
             // Address at the beginning is optional
             if (curtok == Token::NUM) {
-                GetNextPrev();
+                GetNext();
             }
 
             ExpectTok(Token::ID, curtok, []{ return "Expected DW"; });
             std::string op_name = lex.getId();
-            GetNextPrev();
+            GetNext();
 
             if (op_name != "DW") {
                 throw ParserError(utils::format("[{}] Expected DW", lex.getLocation()));
@@ -625,9 +625,19 @@ public:
 
             ExpectTok(Token::NUM, curtok, []{ return "Expected number after DW"; });
             auto word = lex.getNumber();
-            GetNextPrev();
+            GetNext();
 
-            data.emplace_back(word);
+            int64_t repCount = 1;
+            if (curtok == Token::TIMES) {
+                GetNext();
+                ExpectTok(Token::NUM, curtok, []{ return "Expected number after *"; });
+                repCount = lex.getNumber();
+                GetNext();
+            }
+
+            for (int64_t i = 0; i < repCount; i++) {
+                data.emplace_back(word);
+            }
         }
     }
 

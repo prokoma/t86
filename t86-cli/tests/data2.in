@@ -1,0 +1,14 @@
+.data
+DW 1 * 5
+DW 2
+DW 3 * 4
+.text
+MOV R0, [0]
+PUTNUM R0
+MOV R0, [5]
+PUTNUM R0
+MOV R0, [6]
+PUTNUM R0
+MOV R0, [9]
+PUTNUM R0
+HALT
