@@ -656,7 +656,7 @@ INS_NAME::INS_NAME(Operand address) : ConditionalJumpInstruction([](Alu::Flags f
             throw InvalidOperand(reg_);
         }
 
-        if (!mem_.isMemoryRegisterOffset() && !mem_.isMemoryRegisterRegister() && !mem_.isMemoryRegisterScaled() && !mem_.isMemoryRegisterOffsetRegister() && !mem_.isMemoryRegisterScaled() && !mem_.isMemoryRegisterOffsetRegisterScaled()) {
+        if (!mem_.isMemoryRegisterOffset() && !mem_.isMemoryRegisterRegister() && !mem_.isMemoryRegisterScaled() && !mem_.isMemoryRegisterOffsetRegister() && !mem_.isMemoryRegisterRegisterScaled() && !mem_.isMemoryRegisterOffsetRegisterScaled()) {
             throw InvalidOperand(mem_);
         }
     }
