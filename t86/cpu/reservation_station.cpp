@@ -3,6 +3,7 @@
 #include "../utils/stats_logger.h"
 
 #include <cassert>
+#include <exception>
 #include <stdexcept>
 
 namespace tiny::t86 {
@@ -300,6 +301,11 @@ namespace tiny::t86 {
     }
 
     void ReservationStation::Entry::retire() {
+        // delay throwing illegal read exception until we know that the instruction will be executed
+        if (memoryAccessException_) {
+            std::rethrow_exception(memoryAccessException_);
+        }
+
         instruction_->retire(*this);
     }
 
@@ -322,7 +328,12 @@ namespace tiny::t86 {
     }
 
     std::optional<int64_t> ReservationStation::Entry::readMemory(uint64_t address) {
-        return cpu_.readMemory(address, maxWriteId_);
+        try {
+            return cpu_.readMemory(address, maxWriteId_);
+        } catch(...) {
+            memoryAccessException_ = std::current_exception();
+            return {-1};
+        }
     }
 
     void ReservationStation::Entry::specifyWriteAddress(MemoryWrite::Id id, std::size_t address) {
