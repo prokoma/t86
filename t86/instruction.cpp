@@ -745,8 +745,9 @@ INS_NAME::INS_NAME(Operand address) : ConditionalJumpInstruction([](Alu::Flags f
     }
 
     void GETCHAR::retire(ReservationStation::Entry& entry) const {
-        char c;
-        is_ >> c;
+        int c = is_.get();
+        if (c == std::char_traits<char>::eof())
+            c = -1;
         entry.setRegister(reg_, c);
     }
 
