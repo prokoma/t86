@@ -546,6 +546,9 @@ public:
         } else if (ins_name == "FPOP") {
             auto reg = FloatRegister();
             return new tiny::t86::FPOP{reg};
+        } else if (ins_name == "GETCHAR") {
+            auto reg = Register();
+            return new tiny::t86::GETCHAR(reg, std::cin);
         } else if (ins_name == "PUTCHAR") {
             auto reg = Register();
             return new tiny::t86::PUTCHAR{reg, std::cout};
