@@ -7,28 +7,93 @@
 #include <unordered_map>
 
 namespace tiny::t86 {
-    void StatsLogger::logInstructionFetch(std::size_t id) {
-        currentTick().instructionFetchPc = id;
-    }
-
-    void StatsLogger::logInstructionDecode(std::size_t id) {
-        currentTick().instructionDecodePc = id;
-    }
-
-    void StatsLogger::logStallRetirement(std::size_t id) {
-        currentTick().stallRetirementRSEntries.push_back(id);
-    }
-
     StatsLogger& StatsLogger::instance() {
         static StatsLogger instance;
         return instance;
     }
 
+    void StatsLogger::logInstructionFetch(std::size_t id) {
+        if (!loggingEnabled_)
+            return;
+        currentTick().instructionFetchPc = id;
+    }
+
+    void StatsLogger::logInstructionDecode(std::size_t id) {
+        if (!loggingEnabled_)
+            return;
+        currentTick().instructionDecodePc = id;
+    }
+
+    void StatsLogger::logStallRetirement(std::size_t id) {
+        if (!loggingEnabled_)
+            return;
+        currentTick().stallRetirementRSEntries.push_back(id);
+    }
+
     void StatsLogger::logNoAluAvailable(std::size_t id) {
+        if (!loggingEnabled_)
+            return;
         currentTick().stallNoAluRSEntries.push_back(id);
     }
 
+    void StatsLogger::logOperandFetching(std::size_t id) {
+        if (!loggingEnabled_)
+            return;
+        currentTick().operandFetchingRSEntries.push_back(id);
+    }
+
+    void StatsLogger::logStallFetch(std::size_t id) {
+        if (!loggingEnabled_)
+            return;
+        currentTick().operandFetchingStallRSEntries.push_back(id);
+    }
+
+    void StatsLogger::logStallRegisterFetch(std::size_t id, Register reg) {
+        if (!loggingEnabled_)
+            return;
+        currentTick().stallRegisterFetchRSEntries[id].insert(reg);
+    }
+
+    void StatsLogger::logStallFloatRegisterFetch(std::size_t id, FloatRegister fReg) {
+        if (!loggingEnabled_)
+            return;
+        currentTick().stallFloatRegisterFetchRSEntries[id].insert(fReg);
+    }
+
+    void StatsLogger::logStallRAMRead(std::size_t id, std::size_t address) {
+        if (!loggingEnabled_)
+            return;
+        currentTick().stallRAMReadRSEntries[id].insert(address);
+    }
+
+    void StatsLogger::logExecuting(std::size_t id) {
+        if (!loggingEnabled_)
+            return;
+        currentTick().executingRSEntries.push_back(id);
+    }
+
+    void StatsLogger::logRetirement(std::size_t id) {
+        if (!loggingEnabled_)
+            return;
+        currentTick().retiredRSEntries.push_back(id);
+    }
+
+    void StatsLogger::logClearSpeculation(std::size_t id) {
+        if (!loggingEnabled_)
+            return;
+        instructions_.erase(id);
+    }
+
+    std::size_t StatsLogger::registerNewInstruction(std::size_t pc, const Instruction* instruction) {
+        if (!loggingEnabled_)
+            return 0;
+        instructions_.emplace(id_, std::make_pair(pc, instruction));
+        return id_++;
+    }
+
     void StatsLogger::newTick() {
+        if (!loggingEnabled_)
+            return;
         ticks_.emplace_back();
     }
 
@@ -83,6 +148,11 @@ namespace tiny::t86 {
         }
     }
 
+    void StatsLogger::enableLoggingAndReset() {
+        loggingEnabled_ = true;
+        reset();
+    }
+
     void StatsLogger::reset() {
         ticks_.clear();
         instructions_.clear();
@@ -91,34 +161,6 @@ namespace tiny::t86 {
 
     StatsLogger::TickStats& StatsLogger::currentTick() {
         return ticks_.back();
-    }
-
-    void StatsLogger::logOperandFetching(std::size_t id) {
-        currentTick().operandFetchingRSEntries.push_back(id);
-    }
-
-    void StatsLogger::logStallFetch(std::size_t id) {
-        currentTick().operandFetchingStallRSEntries.push_back(id);
-    }
-
-    void StatsLogger::logStallRegisterFetch(std::size_t id, Register reg) {
-        currentTick().stallRegisterFetchRSEntries[id].insert(reg);
-    }
-
-    void StatsLogger::logStallFloatRegisterFetch(std::size_t id, FloatRegister fReg) {
-        currentTick().stallFloatRegisterFetchRSEntries[id].insert(fReg);
-    }
-
-    void StatsLogger::logStallRAMRead(std::size_t id, std::size_t address) {
-        currentTick().stallRAMReadRSEntries[id].insert(address);
-    }
-
-    void StatsLogger::logExecuting(std::size_t id) {
-        currentTick().executingRSEntries.push_back(id);
-    }
-
-    void StatsLogger::logRetirement(std::size_t id) {
-        currentTick().retiredRSEntries.push_back(id);
     }
 
     void StatsLogger::processAverageLifetime(std::ostream& os, const StatsLogger::InstructionLifeTime& lt, std::size_t totalCount) {
@@ -156,15 +198,6 @@ namespace tiny::t86 {
            << "    Average executing: " << static_cast<double>(lt.executing) / totalCount << " ticks\n"
            << "    Average waiting for retirement: " << static_cast<double>(lt.waitingForRetirement) / totalCount << " ticks\n"
            << "    Average retirement: " << static_cast<double>(lt.retirement) / totalCount << " ticks\n";
-    }
-
-    std::size_t StatsLogger::registerNewInstruction(std::size_t pc, const Instruction* instruction) {
-        instructions_.emplace(id_, std::make_pair(pc, instruction));
-        return id_++;
-    }
-
-    void StatsLogger::logClearSpeculation(std::size_t id) {
-        instructions_.erase(id);
     }
 
     StatsLogger::InstructionLifeTime StatsLogger::getInstructionLifeTime(std::size_t id) {

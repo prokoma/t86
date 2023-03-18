@@ -16,6 +16,8 @@ namespace tiny::t86 {
     public:
         static StatsLogger& instance();
 
+        void enableLoggingAndReset();
+
         // Resets all the stats, should be called before every new run
         void reset();
 
@@ -122,6 +124,8 @@ namespace tiny::t86 {
         static void processAverageLifetime(std::ostream& os, const InstructionLifeTime& lt, std::size_t totalCount);
 
         StatsLogger() = default;
+
+        bool loggingEnabled_ = false;
 
         std::vector<TickStats> ticks_;
 
