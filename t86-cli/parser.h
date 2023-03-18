@@ -91,11 +91,15 @@ public:
                         throw ParserError(utils::format("Invalid floating point literal: {}{}", num, c));
                     }
                     has_dot = true;
-                } else if(c == 'e') {
+                } else if(c == 'e' || c == 'E') {
                     if(has_e) {
                         throw ParserError(utils::format("Invalid floating point literal: {}{}", num, c));
                     }
                     has_e = true;
+                } else if(c == '+' || c == '-') {
+                    if(!has_e) {
+                        throw ParserError(utils::format("Invalid floating point literal: {}{}", num, c));
+                    }
                 } else if (!isdigit(c)) {
                     undoGetChar();
                     break;
@@ -347,7 +351,7 @@ public:
             GetNextPrev();
         }
 
-        ExpectTok(Token::ID, curtok, []{ return "Expected register name"; });
+        ExpectTok(Token::ID, curtok, [&]{ return utils::format("[{}]: Expected register name", lex.getLocation()); });
         std::string ins_name = lex.getId();
         GetNextPrev();
 

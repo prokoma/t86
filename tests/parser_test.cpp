@@ -45,3 +45,30 @@ TEST(TokenizerTest, MixedTokens) {
     ASSERT_EQ(l.getNext(), Token::RBRACKET);
     ASSERT_EQ(l.getNext(), Token::END);
 }
+
+TEST(TokenizerTest, Floats) {
+    std::istringstream iss("1.5e2 1 1e10 e E FR1");
+    Lexer l(iss);
+    ASSERT_EQ(l.getNext(), Token::NUM_FLOAT);
+    ASSERT_EQ(l.getNext(), Token::NUM);
+    ASSERT_EQ(l.getNext(), Token::NUM_FLOAT);
+    ASSERT_EQ(l.getNext(), Token::ID);
+    ASSERT_EQ(l.getNext(), Token::ID);
+    ASSERT_EQ(l.getNext(), Token::ID);
+}
+
+
+TEST(TokenizerTest, Floats2) {
+    std::istringstream iss("6  MOV FR1, 2.220446049250313E-16\n   7  MOV R0, FR1");
+    Lexer l(iss);
+    ASSERT_EQ(l.getNext(), Token::NUM);
+    ASSERT_EQ(l.getNext(), Token::ID);
+    ASSERT_EQ(l.getNext(), Token::ID);
+    ASSERT_EQ(l.getNext(), Token::COMMA);
+    ASSERT_EQ(l.getNext(), Token::NUM_FLOAT);
+    ASSERT_EQ(l.getNext(), Token::NUM);
+    ASSERT_EQ(l.getNext(), Token::ID);
+    ASSERT_EQ(l.getNext(), Token::ID);
+    ASSERT_EQ(l.getNext(), Token::COMMA);
+    ASSERT_EQ(l.getNext(), Token::ID);
+}
