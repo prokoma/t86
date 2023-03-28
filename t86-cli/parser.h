@@ -393,7 +393,7 @@ public:
             return new tiny::t86::DEC{op};
         } else if (ins_name == "NEG") {
             auto op = Register();
-            return new tiny::t86::DEC{op};
+            return new tiny::t86::NEG{op};
         } else if (ins_name == "MUL") {
             auto dest = Register();
             CHECK_COMMA();
