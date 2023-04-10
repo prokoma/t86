@@ -196,14 +196,14 @@ public:
     }
 
     bool isFloatRegister(std::string_view regname) const {
-        return regname.starts_with("FR");
+        return regname[0] == 'F';
     }
 
     tiny::t86::FloatRegister getFloatRegister(std::string_view regname) const {
-        if (!regname.starts_with("FR")) {
-            throw ParserError(utils::format("Float registers must begin with FR, got {}", regname));
+        if (regname[0] != 'F') {
+            throw ParserError(utils::format("Float registers must begin with F, got {}", regname));
         }
-        regname.remove_prefix(2);
+        regname.remove_prefix(1);
         return tiny::t86::FloatRegister{static_cast<size_t>(std::atoi(regname.data()))};
     }
 
