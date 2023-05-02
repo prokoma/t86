@@ -1,10 +1,12 @@
 #!/bin/bash
 set -euo pipefail
-trap 'echo "Script error: $(basename "$BASH_SOURCE"):$LINENO $BASH_COMMAND" >&2' ERR
+trap 'echo "script error: $(basename "$BASH_SOURCE"):$LINENO $BASH_COMMAND" >&2' ERR
+script_dir="$(dirname -- "$(readlink -f -- "$0")")"
+#script_dir="$(cd -- "$(dirname -- "$0")" && pwd)"
 
 error () {
-echo "$@" >&2
-exit 1
+	echo "Error: $@" >&1
+	exit 1
 }
 
 print-help () {
@@ -40,11 +42,9 @@ case $i in
 esac
 done
 
-root_dir="$(dirname "$0")/.."
+root_dir="$script_dir/.."
 build_dir="$root_dir/build"
-
-num_cpus="$(grep -c '^processor' /proc/cpuinfo)"
 
 mkdir -p "$build_dir" && cd "$build_dir"
 [ -n "$clean" ] && make clean
-cmake -DCMAKE_BUILD_TYPE="$build_type" .. && make -j"$num_cpus"
+cmake -DCMAKE_BUILD_TYPE="$build_type" .. && make -j"$(nproc)"
