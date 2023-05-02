@@ -214,6 +214,8 @@ public:
             return tiny::t86::Register::StackPointer();
         } else if (regname == "IP") {
             return tiny::t86::Register::ProgramCounter();
+        } else if (regname == "FLAGS") {
+            return tiny::t86::Register::Flags();
         } else if (regname[0] != 'R') {
             throw ParserError(utils::format("Registers must begin with an R, unless IP, BP or SP, got {}", regname));
         }
