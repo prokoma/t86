@@ -103,26 +103,26 @@ namespace tiny::t86 {
 
     void StatsLogger::processBasicStats(std::ostream& os) {
         std::size_t totalTicks = ticks_.size();
-        std::size_t totalInstructions = instructions_.size();
-        std::unordered_map<std::size_t, InstructionLifeTime> lifetimes;
-        std::map<Instruction::Signature, std::pair<InstructionLifeTime, std::size_t>> lifetimesBySignature;
-        InstructionLifeTime accumulativeInstructionLifeTime;
-        for (const auto& [id, ins] : instructions_) {
-            InstructionLifeTime lt = getInstructionLifeTime(id);
-            accumulativeInstructionLifeTime += lt;
-            lifetimes.emplace(id, lt);
-            auto& signatureEntry = lifetimesBySignature[instructions_.at(id).second->getSignature()];
-            signatureEntry.first += lt;
-            signatureEntry.second += 1;
-        }
+        // std::size_t totalInstructions = instructions_.size();
+        // std::unordered_map<std::size_t, InstructionLifeTime> lifetimes;
+        // std::map<Instruction::Signature, std::pair<InstructionLifeTime, std::size_t>> lifetimesBySignature;
+        // InstructionLifeTime accumulativeInstructionLifeTime;
+        // for (const auto& [id, ins] : instructions_) {
+        //     InstructionLifeTime lt = getInstructionLifeTime(id);
+        //     accumulativeInstructionLifeTime += lt;
+        //     lifetimes.emplace(id, lt);
+        //     auto& signatureEntry = lifetimesBySignature[instructions_.at(id).second->getSignature()];
+        //     signatureEntry.first += lt;
+        //     signatureEntry.second += 1;
+        // }
         os << "------------------------------------------\n";
         os << "Total ticks: " << totalTicks << std::endl;
         os << "Total instructions executed: " << instructions_.size() << std::endl;
         double throughput = static_cast<double>(instructions_.size()) / totalTicks;
         os << "Throughput: " << throughput << " instructions per tick\n";
         os << "Average instruction latency: " << 1 / throughput << " ticks\n";
-        os << "Global averages:\n";
-        processAverageLifetime(os, accumulativeInstructionLifeTime, totalInstructions);
+        // os << "Global averages:\n";
+        // processAverageLifetime(os, accumulativeInstructionLifeTime, totalInstructions);
         std::cerr << std::flush;
     }
 
