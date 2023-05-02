@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
         return 3;
     }
 
-    bool enableStats = !config.setDefaultIfMissing("--stats", "");
+    bool enableStats = !config.setDefaultIfMissing("-stats", "");
 
     if(enableStats)
         StatsLogger::instance().enableLoggingAndReset();
