@@ -12,7 +12,7 @@ using tiny::config;
 const char* usage_str = R"(
 Usage: t86-cli command
 commands:
-    run [--stats] input - Parses input, which must be valid T86 assembly file, and runs it on the VM.
+    run [-stats] input - Parses input, which must be valid T86 assembly file, and runs it on the VM.
 )";
 
 int main(int argc, char* argv[]) {
